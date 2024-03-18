@@ -1,29 +1,46 @@
-import argparse
-import os
-from colorama import Fore
+import chainlit as cl
+from openai import OpenAI
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description='Starts the API.')
-    parser.add_argument('--dev', action='store_true', help='Run in development mode.')
-    parser.add_argument('--prod', action='store_true', help='Run in production mode.')
-    args = parser.parse_args()
-    return args
 
-def main():
-    args = parse_arguments()
+client = OpenAI(
+    # This is the default and can be omitted
+    api_key="zu-6e6c20a8ce684183ca133da4914c5c74",
+    base_url="https://zukijourney.xyzbot.net/v1"  # or "https://zukijourney.xyzbot.net/unf"
 
-    if args.dev:
-        port = 1339
-        reload_option = "--reload"
-        workers_option = ""
-    elif args.prod:
-        port = 1338
-        reload_option = ""
-        workers_option = "--workers 8"
-    else:
-        raise SystemExit(f"{Fore.RED}ERROR: {Fore.RESET}You didn't select a mode.")
+)
 
-    os.system(f"uvicorn api.main:app --host 0.0.0.0 --port {port} {reload_option} {workers_option}")
 
-if __name__ == "__main__":
-    main()
+@cl.on_message
+async def main(message: cl.Message):
+    # Your custom logic goes here...
+    chat_completion = client.chat.completions.create(
+        stream=True,  # can be true
+        model="gpt-4",  # or "gpt-3.5"
+        messages=[
+            {
+                "role": "user",
+                "content": f'{message}',  # responds 2: gpt-4, responds 1: gpt-3.5
+            },
+        ],
+    )
+    # Send a response back to the user
+    await cl.Message(
+        content=f"Received: {chat_completion.choices[0].delta.content}",
+    ).send()
+
+#
+# chat_completion = client.chat.completions.create(
+#     stream=True, # can be true
+#     model="gpt-4", # or "gpt-3.5"
+#     messages=[
+#         {
+#             "role": "user",
+#             "content": 'what is the difference between a dog and a cat?', #responds 2: gpt-4, responds 1: gpt-3.5
+#         },
+#     ],
+# )
+#
+#
+# for chunk in chat_completion:
+#     if chunk.choices[0].delta.content is not None:
+#         print(chunk.choices[0].delta.content, end="")
